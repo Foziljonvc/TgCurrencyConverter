@@ -1,0 +1,370 @@
+
+// class CURRENCY 
+// {
+//     public function getRate($currencyCode) 
+//     {
+//         $apiUrl = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/$currencyCode/";
+
+//         try {
+//             $response = file_get_contents($apiUrl);
+//             $data = json_decode($response, true);
+//             $data[] = ["Ccy" => "UZS", "Rate" => 1];
+
+//             if (isset($data[0]['Rate'])) {
+//                 return $data[0]['Rate'];
+//             } else {
+//                 return false;
+//             }
+//         } catch (Exception $e) {
+//             return false;
+//         }
+//     }
+
+//     public function convert($amount, $fromCurrency, $toCurrency) 
+//     {
+//         $fromRate = $this->getRate($fromCurrency);
+//         $toRate = $this->getRate($toCurrency);
+
+//         if ($fromRate && $toRate) {
+//             $summa = $amount * $fromRate / $toRate;
+//             return round($summa, 2); // Round the result
+//         } else {
+//             return "Valyuta kursi topilmadi.";
+//         }
+//     }
+// }
+
+
+// declare(strict_types=1);
+
+// use GuzzleHttp\Client;
+
+// class Currency
+// {
+
+//     const API_URL = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/";    
+    
+    
+//     public $http_client;
+    
+//     public function __construct()
+//     {
+//         $this->http_client= new Client(['base_uri' => self::API_URL]);
+
+//     }
+
+//     public function exchange($text)
+//     {
+
+//         $currency = explode(':', $text);
+
+//         $from_currency = $currency[0];
+//         $to_currency = $currency[1];
+//         $amount = $currency[2];
+
+//         // return $amount;
+
+
+//         $response = $this->http_client->get('');
+//         $data = json_decode($response->getBody()->getContents(), true);
+
+//         $rate = 0;
+//         foreach ($data as $item) {
+//             if ($item['Ccy'] === $to_currency) {
+//                 $rate = (float)$item['Rate'];
+//                 break;
+//             }
+//         }
+
+//         return $amount * $rate;
+
+        
+        
+//         // if ($to_currency == 'UZS') 
+//         // {
+//         //     return $amount / $data[0]['Rate'];
+//         // }
+//         // return $amount * $data[0]['Rate'];
+//     }
+// }
+
+
+main.php
+
+
+
+// require 'vendor/autoload.php';
+// require 'main.php';
+
+// use GuzzleHttp\Client;
+
+// $token = "7448038287:AAE95bOvBJbgulctsyL-WXKoJiRiv3Ej0Ao";
+// $tgApi = "https://api.telegram.org/bot$token/";
+
+// $client = new Client(['base_uri' => $tgApi]);
+
+// $update = json_decode(file_get_contents('php://input'));
+
+// $currency = new CURRENCY();
+
+// $keyboard = [
+//     'inline_keyboard' => [
+//         [
+//             ['text' => '🇺🇸', 'callback_data' => 'USD'],
+//             ['text' => '🇪🇺', 'callback_data' => 'EUR'],
+//         ],
+//         [
+//             ['text' => '🇷🇺', 'callback_data' => 'RUB'],
+//             ['text' => '🇺🇿', 'callback_data' => 'UZS']
+//         ],
+//     ]
+// ];
+
+// function sendMessage($chat_id, $text, $reply_markup = null) {
+//     global $client;
+//     $params = [
+//         'chat_id' => $chat_id,
+//         'text' => $text
+//     ];
+
+//     if ($reply_markup) {
+//         $params['reply_markup'] = json_encode($reply_markup);
+//     }
+
+//     $client->post('sendMessage', [
+//         'form_params' => $params
+//     ]);
+// }
+
+
+// function getState($chat_id) {
+//     $filename = "state_$chat_id.json";
+//     if (file_exists($filename)) {
+//         $state = json_decode(file_get_contents($filename), true);
+//     } else {
+//         $state = [
+//             'stage' => 'start',
+//             'from_currency' => null,
+//             'amount' => null,
+//             'to_currency' => null
+//         ];
+//     }
+//     return $state;
+// }
+
+// function saveState($chat_id, $state) {
+//     $filename = "state_$chat_id.json";
+//     file_put_contents($filename, json_encode($state));
+// }
+
+// if (isset($update)) {
+//     if (isset($update->message)) {
+//         $message = $update->message;
+//         $chat_id = $message->chat->id;
+//         $text = $message->text;
+        
+//         $state = getState($chat_id);
+
+//         if ($text === "/start") {
+//             $state = [
+//                 'stage' => 'select_from_currency',
+//                 'from_currency' => null,
+//                 'amount' => null,
+//                 'to_currency' => null
+//             ];
+//             saveState($chat_id, $state);
+//             sendMessage($chat_id, "Valyutani tanlang:", $keyboard);
+//         } elseif ($state['stage'] === 'enter_amount' && is_numeric($text)) {
+//             $state['amount'] = $text;
+//             $state['stage'] = 'select_to_currency';
+//             saveState($chat_id, $state);
+//             sendMessage($chat_id, "Konvertatsiya qilmoqchi bo'lgan valyutani tanlang:", $keyboard);
+//         } else {
+//             sendMessage($chat_id, "Xato format. Iltimos, to'g'ri ma'lumot kiriting.");
+//         }
+//     } elseif (isset($update->callback_query)) {
+//         $callbackQuery = $update->callback_query;
+//         $callback_id = $callbackQuery->id;
+//         $chat_id = $callbackQuery->message->chat->id;
+//         $data = $callbackQuery->data;
+
+//         $state = getState($chat_id);
+
+//         if ($state['stage'] === 'select_from_currency') {
+//             $state['from_currency'] = $data;
+//             $state['stage'] = 'enter_amount';
+//             saveState($chat_id, $state);
+//             sendMessage($chat_id, "Miqdorini kiriting:");
+//         } elseif ($state['stage'] === 'select_to_currency') {
+//             $state['to_currency'] = $data;
+//             $result = $currency->convert($state['amount'], $state['from_currency'], $state['to_currency']);
+//             sendMessage($chat_id, "Natija: " . $result);
+//             $state = [
+//                 'stage' => 'start',
+//                 'from_currency' => null,
+//                 'amount' => null,
+//                 'to_currency' => null
+//             ];
+//             saveState($chat_id, $state);
+//         }
+//     } else {
+//         error_log("Update yoki xabar mavjud emas.");
+//     }
+// }
+
+
+
+// require 'vendor/autoload.php';
+// require 'main.php';
+
+// use GuzzleHttp\Client;
+
+// $botToken = '7448038287:AAE95bOvBJbgulctsyL-WXKoJiRiv3Ej0Ao';
+
+// $botApi = "https://api.telegram.org/bot$botToken/";
+
+// $client = new Client(['base_uri' => $botApi]);
+
+// $update = json_decode(file_get_contents('php://input'));
+
+// $currency = new Currency();
+
+// if (isset($update) && isset($update->message)) {
+//     $message = $update->message;
+//     $chat_id = $message->chat->id;
+//     $text = $message->text;
+
+//     if (!empty($text)) {
+//         $client->post('sendMessage', 
+//             [
+//                 'form_params' => [
+//                     'chat_id' => $chat_id,
+//                     'text' => $currency->exchange($text)
+//                 ]
+//             ]
+//         );
+//     } else {
+//         error_log("Xabar matni bo'sh");
+//     }
+// } else {
+//     error_log("Update yoki xabar mavjud emas");
+// }
+
+
+<!-- <?php
+
+// declare(strict_types=1);
+
+// class Currency_Class 
+// {
+//     const API_URL = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/";
+
+//     public $data;
+
+//     public function __construct()
+//     {
+//         $response = file_get_contents(self::API_URL);
+//         $this->data = json_decode($response, true);
+//     }
+
+//     public function exchange(float $amount, string $to_converter): float
+//     {
+//         if ($to_converter == 'UZS') 
+//         {
+//             return $amount * $this->data[0]['Rate'];
+//         } 
+//         return $amount / $this->data[0]['Rate'];
+//     }
+// }
+
+// <?php
+
+// require 'vendor/autoload.php';
+// require 'main.php';
+
+// use GuzzleHttp\Client;
+
+// $token = "7448038287:AAE95bOvBJbgulctsyL-WXKoJiRiv3Ej0Ao";
+// $tgApi = "https://api.telegram.org/bot$token/";
+
+// $client = new Client(['base_uri' => $tgApi]);
+
+// $update = json_decode(file_get_contents('php://input'));
+
+// $keyboard = 
+// [
+//         'inline_keyboard' => 
+//         [
+//             [
+//                 ['text' => '🇺🇸 <=> 🇺🇿', 'callback_data' => 'USD:UZS'],
+//                 ['text' => '🇺🇿 <=> 🇺🇸', 'callback_data' => 'UZS:USD']
+//             ],
+//         ]
+// ];
+
+// $converter = new Currency_Class();
+
+// if (isset($update->message)) {
+//     $message  = $update->message;
+//     $chat_id  = $message->chat->id;
+//     $text     = $message->text ?? '';
+
+//     if ($text === '/start') {
+//         $client->post('sendMessage', [
+//             'form_params' => [
+//                 'chat_id' => $chat_id,
+//                 'text' => 'Valyutani tanlang',
+//                 'reply_markup' => json_encode($keyboard)
+//             ]
+//         ]);
+//     }
+// }
+
+// if (isset($update->callback_query)) {
+//     $callback_query = $update->callback_query;
+//     $chat_id        = $callback_query->message->chat->id;
+//     $callback_data  = $callback_query->data;
+
+//     $client->post('sendMessage', [
+//         'form_params' => [
+//             'chat_id' => $chat_id,
+//             'text' => 'Qiymatni kiriting:'
+//         ]
+//     ]);
+
+
+// }
+
+// <?php
+
+// class DB 
+// {
+//     public $conn;
+
+//     public function __construct()
+//     {
+//         try {
+
+//             $this->conn = new PDO("mysql:host=localhost;dbname=myDB", 'foziljonvc', '1220');
+//             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+//         }catch (PDOException $e) {
+
+//             echo "Connection failed: " . $e->getMessage();
+
+//         }
+//     }
+// }
+
+// ?>
+
+// CREATE DATABASE CurrencyConverterBot;
+
+// CREATE TABLE usersinfo (
+//     id INT AUTO_INCREMENT,
+//     Chat_ID INT,
+//     Converter_type VARCHAR(32),
+//     Amount FLOAT,
+//     Date VARCHAR(32),
+//     PRIMARY KEY (id)
+// );
